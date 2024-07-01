@@ -2,8 +2,8 @@
 {
     public class CategoryResponse
     {
-        public int CategoryId { get; set; }
-        public string CategoryName { get; set; }
-        public string isDeleted { get; set; }
+        public int id { get; set; }
+        public string Name { get; set; }
+        public bool is_Deleted { get; set; }
     }
 }

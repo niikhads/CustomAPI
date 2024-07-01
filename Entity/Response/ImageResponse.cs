@@ -1,6 +1,6 @@
-﻿namespace WebApplication2.Entity.Model
+﻿namespace WebApplication2.Entity.Response
 {
-    public class Image
+    public class ImageResponse
     {
         public int id { get; set; }
         public byte[] Data { get; set; }

@@ -1,48 +1,96 @@
-﻿using WebApplication2.Entity.Model;
+﻿using Dapper;
+using Npgsql;
+using System.Data;
+using WebApplication2.Entity.Dto;
+using WebApplication2.Entity.Model;
+using WebApplication2.Entity.Request;
 using WebApplication2.Repositories.IRepositories;
 
 namespace WebApplication2.Repositories
 {
     public class CategoryDapperRepository : ICategoryRepository
     {
-        private readonly IDbConnection _dbConnection;
+        private readonly NpgsqlConnection _dbConnection;
 
-        public CategoryDapperRepository(IDbConnection dbConnection)
+        public CategoryDapperRepository(NpgsqlConnection dbConnection)
         {
             _dbConnection = dbConnection;
         }
 
-        public IEnumerable<Category> GetAll()
+        public async Task<IEnumerable<Category>> GetAll()
         {
-            string query = "SELECT * FROM Categories;";
-            return _dbConnection.Query<Category>(query);
+            string query = "SELECT * FROM category";
+             var result =  await _dbConnection.QueryAsync<Category>(query);
+            return result;
         }
 
-        public Category GetByCategoryId(int CategoryId)
+        public async Task<Category> GetByCategoryId(int id)
         {
-            string query = "SELECT CategoryId, Name, Description FROM Categories WHERE CategoryId = :CategoryId;";
-            return _dbConnection.QuerySingleOrDefault<Category>(query, new { CategoryId = CategoryId });
+            string query = "SELECT * FROM category WHERE id = :id AND is_deleted = false;";
+            return await _dbConnection.QuerySingleOrDefaultAsync<Category>(query, new { id });
         }
 
-        public bool Insert(Category category)
+        public async Task<Category> Insert(CategoryRequest categoryRequest)
         {
-            string query = "INSERT INTO Categories (Name, Description) VALUES (@Name, :Description);";
-            int rowsAffected = _dbConnection.Execute(query, category);
-            return rowsAffected > 0;
+            string query = @"
+            INSERT INTO category (name, is_deleted) 
+            VALUES (:Name, false) ";
+
+            int rowsAffected = await _dbConnection.ExecuteAsync(query, new {Name = categoryRequest.Name });
+            return new Category
+            {
+                 
+               Name = categoryRequest.Name
+
+            };
         }
 
-        public bool Update(Category category)
+        public async Task<Category> Update(CategoryUpdateDto categoryUpdateDto)
         {
-            string query = "UPDATE Categories SET Name = @Name, Description = @Description WHERE CategoryId = :CategoryId;";
-            int rowsAffected = _dbConnection.Execute(query, category);
-            return rowsAffected > 0;
+            string query = @"
+            UPDATE category 
+             SET name = :name 
+               WHERE id = :id AND is_deleted = false";
+
+
+            await _dbConnection.ExecuteAsync(query, new
+            {
+                Name = categoryUpdateDto.Name,
+            //    id = categoryUpdateDto.id
+            });
+
+            return new Category
+            {
+          //      id = categoryUpdateDto.id,
+                Name = categoryUpdateDto.Name
+            };
         }
 
-        public bool Delete(int CategoryId)
+        public async Task<Category> Delete(int id)
         {
-            string query = "DELETE FROM Categories WHERE CategoryId = :CategoryId;";
-            int rowsAffected = _dbConnection.Execute(query, new { CategoryId = CategoryId });
-            return rowsAffected > 0;
+            string query = @"
+            UPDATE category 
+            SET is_deleted = true 
+            WHERE id = :id;";
+
+            int affectedRows = await _dbConnection.ExecuteAsync(query, new { id });
+
+            if (affectedRows > 0)
+            {
+                return new Category
+                {           
+                    Name = null
+                };
+            }
+            else
+            {
+                throw new Exception("Category not found or already deleted.");
+            }
         }
+
+    
     }
+
+
 }
+

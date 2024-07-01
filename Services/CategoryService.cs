@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics.Eventing.Reader;
+using WebApplication2.Entity.Dto;
 using WebApplication2.Entity.Model;
 using WebApplication2.Entity.Request;
 using WebApplication2.Entity.Response;
 using WebApplication2.Repositories.IRepositories;
 using WebApplication2.Services.ServicesInterface;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace WebApplication2.Services
@@ -18,92 +18,211 @@ namespace WebApplication2.Services
             _categoryRepository = categoryRepository;
         }
 
-
-        public List<ResponseBaseColumn> GetAllCategories()
+        public async Task<ResponseBaseColumn> GetAll()
         {
-            var categories = _categoryRepository.GetAll();
-            var responseList = new List<ResponseBaseColumn>();
-
-            foreach (var category in categories)
+                IEnumerable<Category> categories;
+            try
             {
-                var categoryResponse = new CategoryResponse
+
+                categories = await _categoryRepository.GetAll();
+            }
+            catch (Exception ex)
+            {
+
+                //var response = new ResponseBaseColumn();
+                //  response = new ResponseBaseColumn
+                return new ResponseBaseColumn()
                 {
-                    CategoryId = category.CategoryId,
-                    CategoryName = category.CategoryName
+                  //  Data = categories,
+                    IsSuccess = false,
+                    Message = "Category retrieved unlucky",
+                    Status = "500"
                 };
 
-                responseList.Add(new ResponseBaseColumn
+
+               // return response;
+            }
+            return new ResponseBaseColumn()
+            {
+                Data = categories,  
+                IsSuccess = true,
+                Message = "Category retrieved successfully",
+                Status = "200"
+            };
+        }
+
+
+        public async Task<ResponseBaseColumn> GetCategoryById(int id)
+        {
+            try
+            {
+                var category = await _categoryRepository.GetByCategoryId(id);
+
+                if (category == null)
+                {
+                    return new ResponseBaseColumn
+                    {
+                        Data = null,
+                        IsSuccess = false,
+                        Message = "Category not found",
+                        Status = "404"
+                    };
+                }
+
+                var categoryResponse = new CategoryResponse
+                {
+                    id = category.id,
+                    Name = category.Name
+                    
+                };
+
+                return new ResponseBaseColumn
                 {
                     Data = categoryResponse,
                     IsSuccess = true,
                     Message = "Category retrieved successfully",
                     Status = "200"
-                });
+                };
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error occurred while fetching category with ID: {id}. Exception: {ex.Message}");
 
-            return responseList;
+                throw new Exception($"Error occurred while fetching category with ID: {id}", ex);
+            }
         }
 
 
-        public ResponseBaseColumn GetCategoryById(int CategoryId)
-             {
-                  var category = _categoryRepository.GetByCategoryId(CategoryId);
-            if (category == null)
+
+        public async Task<ResponseBaseColumn> AddCategory(CategoryRequest categoryRequest)
+        {
+            try
             {
-                return new ResponseBaseColumn
+                var category = new Category
                 {
-                    Data = null,
-                    IsSuccess = false,
-                    Message = "Code is not running",
-                    Status = "404"
+                    Name = categoryRequest.Name
                 };
-               
-            }
-            else
-            {
+
+                var insertedCategory = await _categoryRepository.Insert(categoryRequest);
+
+                if (insertedCategory == null)
+                {
+                    return new ResponseBaseColumn
+                    {
+                        Data = null,
+                        IsSuccess = false,
+                        Message = "Failed to add category",
+                        Status = "500"
+                    };
+                }
+
+                var categoryResponse = new CategoryResponse
+                {
+                     id = insertedCategory.id,
+                    Name = insertedCategory.Name
+                };
+
                 return new ResponseBaseColumn
                 {
-                    Data = category,
+                    Data = categoryResponse,
                     IsSuccess = true,
-                    Message = "Code is  running",
+                    Message = "Category added successfully",
                     Status = "200"
                 };
             }
-        }
-
-
-
-        CategoryResponse ICategoryService.AddCategory(CategoryRequest categoryRequest)
-        {
-            var category = new Category
+            catch (Exception ex)
             {
-                CategoryName = categoryRequest.CategoryName,
-
-            };
-
-            _categoryRepository.Insert(category);
+                throw new Exception("Error occurred while adding category", ex);
+            }
         }
 
-        CategoryResponse DeleteCategory(int CategoryId)
+        public async Task<ResponseBaseColumn> UpdateCategory(int id, CategoryUpdateDto categoryUpdateDto)
         {
-            _categoryRepository.Delete(CategoryId);
-        }
-
-         
-
-     
-        
-
-        CategoryResponse ICategoryService.UpdateCategory(int CategoryId, CategoryRequest categoryRequest)
-        {
-            var category = new Category
+            try
             {
-                CategoryId = CategoryId,
-                CategoryName = categoryRequest.CategoryName,
+                var existingCategory = await _categoryRepository.GetByCategoryId(id);
 
-            };
+                if (existingCategory == null)
+                {
+                    return new ResponseBaseColumn
+                    {
+                        Data = null,
+                        IsSuccess = false,
+                        Message = "Category not found",
+                        Status = "404"
+                    };
+                }
+                else {
+                    existingCategory.Name = categoryUpdateDto.Name;
 
-            _categoryRepository.Update(category);
+                    var updatedCategory = await _categoryRepository.Update(categoryUpdateDto);
+
+                    var categoryResponse = new CategoryResponse
+                    {
+                        //  id = updatedCategory.Id,
+                        Name = updatedCategory.Name
+                    };
+
+                    return new ResponseBaseColumn
+                    {
+                        Data = categoryResponse,
+                        IsSuccess = true,
+                        Message = "Category updated successfully",
+                        Status = "200"
+                    };
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error occurred while updating category with ID: {id}", ex);
+            }
         }
+
+
+
+
+
+        public async Task<ResponseBaseColumn> DeleteCategory(int id)
+        {
+            try
+            {
+                var category = _categoryRepository.GetByCategoryId(id);
+
+                if (category == null)
+                {
+                    return new ResponseBaseColumn
+                    {
+                        Data = null,
+                        IsSuccess = false,
+                        Message = "Category not found",
+                        Status = "404"
+                    };
+                }
+
+                _categoryRepository.Delete(id);
+
+                var categoryResponse = new CategoryResponse
+                {
+                    id = category.Id,
+                    Name = category.Result.Name
+                };
+
+                return new ResponseBaseColumn
+                {
+                    Data = categoryResponse,
+                    IsSuccess = true,
+                    Message = "Category deleted successfully",
+                    Status = "200"
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error occurred while deleting category with ID: {id}", ex);
+            }
+        }
+
+       
     }
+
 }

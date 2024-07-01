@@ -3,11 +3,12 @@
     public class ProductUpdateDto
     {
 
-        public int ProductId { get; set; }
-        public string ProductName { get; set; }
+        public int id { get; set; }
+        public string Name { get; set; }
         public int Price { get; set; }
-        public int PategoryId { get; set; }
+        public int category_id { get; set; }
         public string Description { get; set; }
-        public bool isWarranty { get; set; }
+        public bool Warranty { get; set; }
+        public List<IFormFile> ImageFiles { get; set; }
     }
 }

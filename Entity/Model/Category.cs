@@ -2,8 +2,10 @@
 {
     public class Category
     {
-        public int CategoryId { get; set; }
-        public string CategoryName { get; set; }
-        public string isDeleted { get; set; }
+        public int id { get; set; }
+        public string Name { get; set; }
+        public string is_deleted { get; set; }
+        
+        public ICollection<Product> Products { get; set; }
     }
 }
